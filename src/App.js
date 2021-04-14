@@ -89,7 +89,7 @@ const App = () => {
       });
       dispatch({
         type: 'SET_NOTES'
-        , notes: notesData.data.listNotes.items 
+        , notes: notesData.data.listNotes.items.sort((a, b) => a.name < b.name ? -1 : 1) 
       });
     } catch (err) {
       console.error(err);

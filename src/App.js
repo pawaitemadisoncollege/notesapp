@@ -171,20 +171,35 @@ const App = () => {
     }
   };
 
-  const deleteNote = async({ id }) => {
-    const index = state.notes.findIndex(n => n.id === id)
-    const notes = [
-      ...state.notes.slice(0, index),
-      ...state.notes.slice(index + 1)];
-    dispatch({ type: 'SET_NOTES', notes })
+  const deleteNote = async(noteToDelete) => {
+    //optimistically update state with the note removed
+    // tom code:
+    dispatch({
+      type:"SET_NOTES"
+      , notes: state.notes.filter(x => x != noteToDelete)
+
+    });
+
+    // author code:
+    // const index = state.notes.findIndex(n => n.id === id)
+    // const notes = [
+    //   ...state.notes.slice(0, index),
+    //   ...state.notes.slice(index + 1)];
+    // dispatch({ type: 'SET_NOTES', notes })
+
+    //call the backend to make the change
     try {
       await API.graphql({
-        query: DeleteNote,
-        variables: { input: { id } }
+        query: DeleteNote
+        , variables: { 
+          input: {
+            id: noteToDelete.id 
+          }
+        }
       })
       console.log('successfully deleted note!')
       } catch (err) {
-        console.error({ err })
+        console.error(err)
     }
   };
 

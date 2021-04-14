@@ -10,11 +10,15 @@ import
 from 'react'
 
 import { API } from 'aws-amplify'
-import { List } from 'antd'
 import 'antd/dist/antd.css'
 import { listNotes } from './graphql/queries'
+import { v4 as uuid } from 'uuid'
+import { List, Input, Button } from 'antd'
+import {createNote as CreateNote } from './graphql/mutations'
 
-const intialState = {
+const CLIENT_ID = uuid();
+
+const initialState = {
   notes: []
   , loading: true
   , error: false
@@ -26,6 +30,27 @@ const intialState = {
 
 const reducer = (state, action) => {
   switch(action.type) {
+    case 'ADD_NOTE':
+      return {
+        ...state 
+        , notes: [
+          action.note  // adds a note to the top of the list
+          , ...state.notes
+        ]
+      };
+    case 'RESET_FORM':
+      return {
+        ...state
+        , form: initialState.form
+      };
+    case 'SET_INPUT':
+      return {
+        ...state
+        , form: {
+          ...state.form
+          , [action.name]: action.value
+        }
+      };
     case 'SET_NOTES':
       return { 
         ...state
@@ -47,7 +72,7 @@ const reducer = (state, action) => {
 
 const App = () => {
 
-  const [state, dispatch] = useReducer(reducer, intialState);
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   const fetchNotes = async() => {
     try {
@@ -96,11 +121,72 @@ const App = () => {
         description={item.description}
       />
     </List.Item>
-    )
+          )
+        };
+
+  const createNote = async () => {
+    const { form } = state  // destructuring pulling form element out of state
+
+    if (!form.name || !form.description) {
+      return alert('please enter a name and description')
+    }
+
+    const note = { 
+      ...form
+      , clientId: CLIENT_ID
+      , completed: false
+      , id: uuid() // generating id locally
+    }
+    
+    //optimistic dispatch, updates local app state before calling graphql
+    dispatch({ 
+      type: 'ADD_NOTE'
+      , note // shorthand for note: note if property name and value are same, can short cut
+    });
+    
+    dispatch({ 
+      type: 'RESET_FORM' 
+    });
+    
+    try {
+      await API.graphql({
+        query: CreateNote,
+        variables: { input: note }
+      })
+      console.log('successfully created note!')
+    } catch (err) {
+      console.error("error: ", err)
+    }
+  };
+
+  const onChange = (e) => {
+    dispatch({
+      type: 'SET_INPUT'
+      , name: e.target.name
+      , value: e.target.value
+    });
   };
 
   return (
     <div style={styles.container}>
+      <Input
+        onChange={onChange}
+        value={state.form.name}
+        placeholder="Enter note name"
+        name='name'
+        style={styles.input}
+      />
+      <Input
+        onChange={onChange}
+        value={state.form.description}
+        placeholder="Enter note description"
+        name='description'
+        style={styles.input}
+      />
+      <Button
+        onClick={createNote}
+        type="primary"
+      >Create Note</Button>
       <List
         loading={state.loading}
         dataSource={state.notes}

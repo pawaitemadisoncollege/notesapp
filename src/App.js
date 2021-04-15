@@ -24,6 +24,7 @@ import {
   ,createNote as CreateNote
   , deleteNote as DeleteNote 
 } from './graphql/mutations';
+import { PresetStatusColorTypes } from 'antd/lib/_util/colors';
 
 const CLIENT_ID = uuid();
 
@@ -136,12 +137,12 @@ const App = () => {
         style={styles.p} 
         onClick={() => updateNote(item)}
         >
-          {item.completed ? 'completed' : 'mark completed'}
+          {item.completed ? 'mark incomplete' : 'mark completed'}
         </p>
       ]}>
 
       <List.Item.Meta
-        title={item.name}
+        title={item.name + (item.completed ? ' (completed)' : '')}
         description={item.description}
       />
     </List.Item>
@@ -185,16 +186,25 @@ const App = () => {
 
   const updateNote = async(noteToUpdate) => {
     //update the state (optimistic)
-    const index = state.notes.findIndex(n => n.id === noteToUpdate.id)
-    const notes = [...state.notes]
-    notes[index].completed = !noteToUpdate.completed
-    dispatch({ type: 'SET_NOTES', notes})
+    dispatch({ 
+      type: 'SET_NOTES'
+      , notes: state.notes.map(x => ({
+        ...x
+        , completed: x == noteToUpdate ? !x.completed : x.completed //ternary 
+
+      }))  // map over each note and when i get to the one I want, switch the completed state.
+    });
 
     // update the back end
     try {
       await API.graphql({
-        query: UpdateNote,
-        variables: { input: { id: noteToUpdate.id, completed: notes[index].completed } }
+        query: UpdateNote
+        , variables: { 
+          input: { 
+            id: noteToUpdate.id
+            , completed: !noteToUpdate.completed 
+          } 
+        }
       })
       console.log('note successfully updated!')
     } catch (err) {

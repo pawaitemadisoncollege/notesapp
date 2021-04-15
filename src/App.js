@@ -25,6 +25,7 @@ import {
   , deleteNote as DeleteNote 
 } from './graphql/mutations';
 import { PresetStatusColorTypes } from 'antd/lib/_util/colors';
+import { onCreateNote } from './graphql/subscriptions'
 
 const CLIENT_ID = uuid();
 
@@ -101,9 +102,28 @@ const App = () => {
     }
   };
 
-  useEffect(
+  useEffect(  //takes two params - a lambda and an empty array
     () => {
       fetchNotes();
+      const subscription = API.graphql(   // subscription does not return a promise
+        {
+          query: onCreateNote
+        }
+      ).subscribe( // function that takes an object. Object has a next property
+        {  
+          next: noteData => {  // next property is a lamda function that goes to multiple statements
+            const note = noteData.value.data.onCreateNote // get the note from the subscription payload
+            // how would you know what is all on noteData? console.log it!
+            if (CLIENT_ID === note.clientId) {
+              return; // bail if this instance of the app caused this subscription notification
+            }
+            dispatch({ //otherwise, update the state
+              type: 'ADD_NOTE'
+              , note 
+            });
+        }
+      });
+      return () => subscription.unsubscribe(); // clean up
     }
     , []
   );

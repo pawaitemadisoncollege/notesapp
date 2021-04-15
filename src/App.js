@@ -20,7 +20,8 @@ import {
 } from 'antd';
 
 import {
-  createNote as CreateNote
+  updateNote as UpdateNote
+  ,createNote as CreateNote
   , deleteNote as DeleteNote 
 } from './graphql/mutations';
 
@@ -130,6 +131,12 @@ const App = () => {
           onClick={() => deleteNote(item)}
         >
           Delete
+        </p>,
+        <p 
+        style={styles.p} 
+        onClick={() => updateNote(item)}
+        >
+          {item.completed ? 'completed' : 'mark completed'}
         </p>
       ]}>
 
@@ -173,6 +180,25 @@ const App = () => {
       console.log('successfully created note!')
     } catch (err) {
       console.error("error: ", err)
+    }
+  };
+
+  const updateNote = async(noteToUpdate) => {
+    //update the state (optimistic)
+    const index = state.notes.findIndex(n => n.id === noteToUpdate.id)
+    const notes = [...state.notes]
+    notes[index].completed = !noteToUpdate.completed
+    dispatch({ type: 'SET_NOTES', notes})
+
+    // update the back end
+    try {
+      await API.graphql({
+        query: UpdateNote,
+        variables: { input: { id: noteToUpdate.id, completed: notes[index].completed } }
+      })
+      console.log('note successfully updated!')
+    } catch (err) {
+      console.error('error: ', err)
     }
   };
 

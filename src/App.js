@@ -142,7 +142,9 @@ const App = () => {
       ]}>
 
       <List.Item.Meta
-        title={item.name + (item.completed ? ' (completed)' : '')}
+        //title={item.name + (item.completed ? ' (completed)' : '')}
+        // tick string: evaluates as js expression
+        title={`${item.name} ${item.completed ? ' (completed)' : ''}`}
         description={item.description}
       />
     </List.Item>
